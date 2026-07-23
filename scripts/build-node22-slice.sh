@@ -5,6 +5,8 @@ readonly NODE_MOBILE_REPOSITORY="https://github.com/nodejs-mobile/nodejs-mobile.
 # Head of the public Node 22.9.0 port branch. It is intentionally pinned:
 # moving the ref would execute unreviewed build changes in CI.
 readonly NODE_MOBILE_COMMIT="106c51f95d55d1010de56a2ffd09bfb4ba819a47"
+readonly APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+readonly NODE_MOBILE_PATCH="${APP_ROOT}/patches/node22-ios-host-tools.patch"
 
 target="${1:-}"
 case "${target}" in
@@ -37,6 +39,10 @@ if [[ "${actual_commit}" != "${NODE_MOBILE_COMMIT}" ]]; then
   echo "Unexpected source commit: ${actual_commit}" >&2
   exit 1
 fi
+
+git -C "${source_root}" apply --check "${NODE_MOBILE_PATCH}"
+git -C "${source_root}" apply "${NODE_MOBILE_PATCH}"
+git -C "${source_root}" diff --check
 
 python3 -m venv "${source_root}/.venv"
 source "${source_root}/.venv/bin/activate"

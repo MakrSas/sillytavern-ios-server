@@ -1,0 +1,22 @@
+diff --git a/common.gypi b/common.gypi
+index 3b66bca6e3..9943f403dd 100644
+--- a/common.gypi
++++ b/common.gypi
+@@ -712,6 +712,17 @@
+           ],
+         },
+         'target_conditions': [
++          # Host build tools must execute on the macOS build machine. Without
++          # this override, the iOS settings leak into node_js2c#host and the
++          # generated binary is killed when Make tries to run it.
++          ['_toolset=="host"', {
++            'xcode_settings': {
++              'SDKROOT': 'macosx',
++              'IPHONEOS_DEPLOYMENT_TARGET': '',
++              'MACOSX_DEPLOYMENT_TARGET': '11.0',
++              'ENABLE_BITCODE': 'NO',
++            },
++          }],
+           ['_type!="static_library"', {
+             'xcode_settings': {
+               'OTHER_LDFLAGS': [
