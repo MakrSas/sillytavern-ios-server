@@ -68,5 +68,7 @@ jobs:
           path: |
             Build/SillyTavernServer-unsigned.ipa
             Build/SillyTavernServer-unsigned.ipa.sha256
+            Build/linked-libraries.txt
+            Build/ipa-contents.txt
           if-no-files-found: error
           retention-days: 14

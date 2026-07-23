@@ -86,7 +86,9 @@ scripts/
 3. скачает официальный NodeMobile 18.20.4;
 4. проверит SHA-256 архива;
 5. соберёт приложение для симулятора;
-6. соберёт unsigned `SillyTavernServer-unsigned.ipa`.
+6. проверит `otool -L` и наличие встроенного `NodeMobile.framework`;
+7. соберёт unsigned `SillyTavernServer-unsigned.ipa`;
+8. повторно проверит framework уже внутри IPA.
 
 Node 18 используется только для проверки механизма встраивания. Он не подходит
 для актуального SillyTavern.

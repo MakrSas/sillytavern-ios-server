@@ -22,7 +22,22 @@
 		A1000000000000000000000D /* NodeMobile.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* NodeMobile.xcframework */; };
 		A1000000000000000000000E /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* WebKit.framework */; };
 		A1000000000000000000000F /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* Security.framework */; };
+		A10000000000000000000010 /* NodeMobile.xcframework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* NodeMobile.xcframework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		C10000000000000000000004 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				A10000000000000000000010 /* NodeMobile.xcframework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		B10000000000000000000001 /* SillyTavernServerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/App/SillyTavernServerApp.swift; sourceTree = "<group>"; };
@@ -126,6 +141,7 @@
 			buildPhases = (
 				C10000000000000000000002 /* Sources */,
 				C10000000000000000000001 /* Frameworks */,
+				C10000000000000000000004 /* Embed Frameworks */,
 				C10000000000000000000003 /* Resources */,
 			);
 			buildRules = (
