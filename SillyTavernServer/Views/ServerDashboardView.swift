@@ -55,7 +55,7 @@ struct ServerDashboardView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(controller.status.rawValue)
                         .font(.headline)
-                    Text(controller.activePort.map { "127.0.0.1:\($0)" } ?? "Порт пока не назначен")
+                    Text(verbatim: controller.activePort.map { "127.0.0.1:\($0)" } ?? "Порт пока не назначен")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                 }
