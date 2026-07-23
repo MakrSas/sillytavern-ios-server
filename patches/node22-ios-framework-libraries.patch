@@ -1,5 +1,5 @@
 diff --git a/tools/ios_framework_prepare.sh b/tools/ios_framework_prepare.sh
-index 9885866..4828a06 100755
+index 9885866..761ca0f 100755
 --- a/tools/ios_framework_prepare.sh
 +++ b/tools/ios_framework_prepare.sh
 @@ -18,7 +18,6 @@ XCODE_PROJECT_PATH='tools/ios-framework/NodeMobile.xcodeproj/project.pbxproj'
@@ -35,7 +35,7 @@ index 9885866..4828a06 100755
      "libv8_zlib.a"
      "libzlib.a"
  )
-@@ -50,13 +56,43 @@ declare -a outputs_x64_only=(
+@@ -50,13 +56,71 @@ declare -a outputs_x64_only=(
      "libbase64_ssse3.a"
  )
  declare -a outputs_arm64_only=(
@@ -77,10 +77,68 @@ index 9885866..4828a06 100755
 +  printf '%s' "$linker_flags"
 +}
 +
++stage_static_libraries() {
++  local destination="$1"
++  shift
++  local library_root
++  library_root="$(cd "$LIBRARY_PATH" && pwd)"
++  mkdir -p "$destination"
++
++  for output_file in "$@"; do
++    if [[ ! -f "${library_root}/${output_file}" ]]; then
++      echo "Missing static library: ${library_root}/${output_file}" >&2
++      return 1
++    fi
++    # A hard link keeps the archive alive across `make clean` without
++    # duplicating its (often multi-gigabyte) contents on the runner disk.
++    ln -f "${library_root}/${output_file}" "${destination}/${output_file}"
++  done
++}
++
++prune_build_intermediates() {
++  # The framework link consumes the root-level archives, not their object
++  # directories. Removing those objects leaves enough room for Xcode's link.
++  rm -rf \
++    "${LIBRARY_PATH}/obj.host" \
++    "${LIBRARY_PATH}/obj.target" \
++    "${LIBRARY_PATH}/.deps"
++  df -h /
++}
++
  build_for_arm64_device() {
    make clean
    GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
-@@ -135,6 +171,9 @@ build_framework_for_arm64_device() {
+@@ -74,6 +138,4 @@ build_for_arm64_device() {
+-  # Move compilation outputs
+-  mkdir -p $TARGET_LIBRARY_PATH/arm64-device
+-  for output_file in "${outputs_arm64[@]}"; do
+-    cp $LIBRARY_PATH/$output_file $TARGET_LIBRARY_PATH/arm64-device/
+-  done
++  # Stage compilation outputs without duplicating the large archives.
++  stage_static_libraries "$TARGET_LIBRARY_PATH/arm64-device" "${outputs_arm64[@]}"
++  prune_build_intermediates
+ }
+@@ -100,6 +162,4 @@ build_for_arm64_simulator() {
+-  # Move compilation outputs
+-  mkdir -p $TARGET_LIBRARY_PATH/arm64-simulator
+-  for output_file in "${outputs_arm64[@]}"; do
+-      cp $LIBRARY_PATH/$output_file $TARGET_LIBRARY_PATH/arm64-simulator/
+-  done
++  # Stage compilation outputs without duplicating the large archives.
++  stage_static_libraries "$TARGET_LIBRARY_PATH/arm64-simulator" "${outputs_arm64[@]}"
++  prune_build_intermediates
+ }
+@@ -123,6 +183,4 @@ build_for_x64_simulator() {
+-  # Move compilation outputs
+-  mkdir -p $TARGET_LIBRARY_PATH/x64-simulator
+-  for output_file in "${outputs_x64[@]}"; do
+-    cp $LIBRARY_PATH/$output_file $TARGET_LIBRARY_PATH/x64-simulator/
+-  done
++  # Stage compilation outputs without duplicating the large archives.
++  stage_static_libraries "$TARGET_LIBRARY_PATH/x64-simulator" "${outputs_x64[@]}"
++  prune_build_intermediates
+ }
+@@ -135,6 +193,9 @@ build_framework_for_arm64_device() {
    done
    # Remove libraries that do not exist for this target
    cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
@@ -90,7 +148,7 @@ index 9885866..4828a06 100755
    for output_file in "${outputs_x64_only[@]}"; do
      grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
    done
-@@ -145,7 +184,8 @@ build_framework_for_arm64_device() {
+@@ -145,7 +206,8 @@ build_framework_for_arm64_device() {
      -configuration Release \
      -arch arm64 \
      -sdk "iphoneos" \
@@ -100,7 +158,7 @@ index 9885866..4828a06 100755
    mv $XCODE_PROJECT_PATH.bak $XCODE_PROJECT_PATH
  }
  
-@@ -157,6 +197,9 @@ build_framework_for_arm64_simulator() {
+@@ -157,6 +219,9 @@ build_framework_for_arm64_simulator() {
    done
    # Remove libraries that do not exist for this target
    cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
@@ -110,7 +168,7 @@ index 9885866..4828a06 100755
    for output_file in "${outputs_x64_only[@]}"; do
      grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
    done
-@@ -167,7 +210,8 @@ build_framework_for_arm64_simulator() {
+@@ -167,7 +232,8 @@ build_framework_for_arm64_simulator() {
      -configuration Release \
      -arch arm64 \
      -sdk "iphonesimulator" \
@@ -120,7 +178,7 @@ index 9885866..4828a06 100755
    mv $XCODE_PROJECT_PATH.bak $XCODE_PROJECT_PATH
  }
  
-@@ -179,6 +223,9 @@ build_framework_for_x64_simulator() {
+@@ -179,6 +245,9 @@ build_framework_for_x64_simulator() {
    done
    # Remove libraries that do not exist for this target
    cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
@@ -130,7 +188,7 @@ index 9885866..4828a06 100755
    for output_file in "${outputs_arm64_only[@]}"; do
      grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
    done
-@@ -189,6 +236,7 @@ build_framework_for_x64_simulator() {
+@@ -189,6 +258,7 @@ build_framework_for_x64_simulator() {
      -configuration Release \
      -arch x86_64 \
      -sdk "iphonesimulator" \

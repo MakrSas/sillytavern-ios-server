@@ -67,14 +67,35 @@ jobs:
             exit 1
           fi
 
+      - name: Restore cached Node 22 device runtime
+        id: node22-runtime-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/node22-arm64
+          key: node22-ios-arm64-${{ hashFiles('scripts/build-node22-slice.sh', 'patches/node22-ios-host-tools.patch', 'patches/node22-ios-framework-libraries.patch') }}
+
       - name: Build pinned NodeMobile 22 device runtime
+        if: steps.node22-runtime-cache.outputs.cache-hit != 'true'
         run: |
           chmod +x scripts/build-node22-slice.sh
           scripts/build-node22-slice.sh arm64
 
-      - name: Create device-only XCFramework
+      - name: Validate Node 22 device runtime
         run: |
           test -f "${RUNNER_TEMP}/node22-arm64/NodeMobile.framework/NodeMobile"
+          test "$(cat "${RUNNER_TEMP}/node22-arm64/SOURCE_COMMIT")" = \
+            "106c51f95d55d1010de56a2ffd09bfb4ba819a47"
+          file "${RUNNER_TEMP}/node22-arm64/NodeMobile.framework/NodeMobile"
+
+      - name: Save Node 22 device runtime cache
+        if: steps.node22-runtime-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/node22-arm64
+          key: node22-ios-arm64-${{ hashFiles('scripts/build-node22-slice.sh', 'patches/node22-ios-host-tools.patch', 'patches/node22-ios-framework-libraries.patch') }}
+
+      - name: Create device-only XCFramework
+        run: |
           mkdir -p Vendor
           xcodebuild -create-xcframework \
             -framework "${RUNNER_TEMP}/node22-arm64/NodeMobile.framework" \
