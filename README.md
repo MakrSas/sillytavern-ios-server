@@ -45,7 +45,7 @@ NodeMobile и запускает настоящий HTTP-сервер тольк
 
 Поэтому Node 22 сначала должен:
 
-1. собраться как iOS XCFramework;
+1. собраться как device-only iOS XCFramework;
 2. запустить smoke-server на физическом iPhone;
 3. пройти отдельные тесты `WebAssembly`, Jimp и `tiktoken`;
 4. быть обновлён с устаревшего экспериментального 22.9.0 до поддерживаемого
@@ -100,12 +100,11 @@ Node 18 используется только для проверки механ
 
 Вручную запустите workflow **Build experimental Node 22 and IPA**.
 
-Он параллельно собирает:
-
-- `iphoneos-arm64`;
-- `iphonesimulator-arm64`;
-
-после чего создаёт `NodeMobile.xcframework` и unsigned IPA.
+Он собирает `iphoneos-arm64`, создаёт device-only
+`NodeMobile.xcframework` и unsigned IPA для проверки на физическом iPhone.
+Симулятор намеренно не входит в этот экспериментальный workflow: для
+LiveContainer он не нужен, а полная сборка Node/V8 для второй архитектуры
+удваивает время и расход диска.
 
 Исходник закреплён на конкретном коммите
 `106c51f95d55d1010de56a2ffd09bfb4ba819a47`. Workflow не следует за

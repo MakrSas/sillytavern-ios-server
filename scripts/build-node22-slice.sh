@@ -21,12 +21,30 @@ scratch_root="${RUNNER_TEMP:-}"
 if [[ -z "${scratch_root}" ]]; then
   scratch_root="$(mktemp -d)"
 fi
+scratch_root="$(cd "${scratch_root}" && pwd -P)"
 source_root="${scratch_root}/nodejs-mobile-${target}"
 
 if [[ -e "${source_root}" ]]; then
   echo "Refusing to reuse existing source directory: ${source_root}" >&2
   exit 1
 fi
+
+cleanup_source() {
+  if [[ ! -e "${source_root}" ]]; then
+    return
+  fi
+
+  case "${source_root}" in
+    "${scratch_root%/}"/nodejs-mobile-arm64|\
+    "${scratch_root%/}"/nodejs-mobile-arm64-simulator)
+      rm -rf -- "${source_root}"
+      ;;
+    *)
+      echo "Refusing to clean unexpected source directory: ${source_root}" >&2
+      ;;
+  esac
+}
+trap cleanup_source EXIT
 
 mkdir -p "${source_root}"
 git -C "${source_root}" init

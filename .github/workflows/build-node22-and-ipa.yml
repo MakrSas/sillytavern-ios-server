@@ -6,17 +6,15 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: experimental-node22-device
+  cancel-in-progress: false
+
 jobs:
-  build-runtime-slice:
-    name: Node 22 / ${{ matrix.target }}
+  build-device-and-ipa:
+    name: Node 22 / arm64 and unsigned IPA
     runs-on: macos-15
     timeout-minutes: 360
-    strategy:
-      fail-fast: false
-      matrix:
-        target:
-          - arm64
-          - arm64-simulator
 
     steps:
       - name: Checkout app source
@@ -28,52 +26,61 @@ jobs:
           xcodebuild -version
           uname -m
 
-      - name: Build pinned NodeMobile 22 port
+      # Node/V8 produces large target and host object trees. The standard
+      # macos-15 image contains many other complete Xcode installations, and
+      # the previous build exhausted the runner disk while libtool was creating
+      # libv8_base_without_compiler.a. Keep only the explicitly selected Xcode.
+      - name: Reclaim runner disk space
+        run: |
+          echo "Disk space before cleanup:"
+          df -h /
+
+          sudo rm -rf -- \
+            /Applications/Xcode_26.3.app \
+            /Applications/Xcode_26.3.0.app \
+            /Applications/Xcode_26.2.app \
+            /Applications/Xcode_26.2.0.app \
+            /Applications/Xcode_26.1.1.app \
+            /Applications/Xcode_26.1.app \
+            /Applications/Xcode_26.0.1.app \
+            /Applications/Xcode_26.0.app \
+            /Applications/Xcode_16.3.app \
+            /Applications/Xcode_16.3.0.app \
+            /Applications/Xcode_16.2.app \
+            /Applications/Xcode_16.2.0.app \
+            /Applications/Xcode_16.1.app \
+            /Applications/Xcode_16.1.0.app \
+            /Applications/Xcode_16.app \
+            /Applications/Xcode_16.0.app \
+            /Applications/Xcode_16.0.0.app
+
+          test -x /Applications/Xcode_16.4.app/Contents/Developer/usr/bin/xcodebuild
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+          echo "Disk space after cleanup:"
+          df -h /
+
+          available_kb="$(df -Pk / | awk 'NR == 2 { print $4 }')"
+          minimum_kb="$((30 * 1024 * 1024))"
+          if [[ "${available_kb}" -lt "${minimum_kb}" ]]; then
+            echo "Less than 30 GiB is available after cleanup; refusing to start the hour-long build." >&2
+            exit 1
+          fi
+
+      - name: Build pinned NodeMobile 22 device runtime
         run: |
           chmod +x scripts/build-node22-slice.sh
-          scripts/build-node22-slice.sh "${{ matrix.target }}"
+          scripts/build-node22-slice.sh arm64
 
-      - name: Upload framework slice
-        uses: actions/upload-artifact@v4
-        with:
-          name: node22-${{ matrix.target }}
-          path: ${{ runner.temp }}/node22-${{ matrix.target }}
-          if-no-files-found: error
-          retention-days: 7
-
-  combine-and-build:
-    name: XCFramework and unsigned IPA
-    needs: build-runtime-slice
-    runs-on: macos-15
-    timeout-minutes: 90
-
-    steps:
-      - name: Checkout app source
-        uses: actions/checkout@v4
-
-      - name: Select Xcode 16.4
-        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
-
-      - name: Download device slice
-        uses: actions/download-artifact@v4
-        with:
-          name: node22-arm64
-          path: Build/runtime/device
-
-      - name: Download simulator slice
-        uses: actions/download-artifact@v4
-        with:
-          name: node22-arm64-simulator
-          path: Build/runtime/simulator
-
-      - name: Create XCFramework
+      - name: Create device-only XCFramework
         run: |
-          test -f Build/runtime/device/NodeMobile.framework/NodeMobile
-          test -f Build/runtime/simulator/NodeMobile.framework/NodeMobile
+          test -f "${RUNNER_TEMP}/node22-arm64/NodeMobile.framework/NodeMobile"
+          mkdir -p Vendor
           xcodebuild -create-xcframework \
-            -framework Build/runtime/device/NodeMobile.framework \
-            -framework Build/runtime/simulator/NodeMobile.framework \
+            -framework "${RUNNER_TEMP}/node22-arm64/NodeMobile.framework" \
             -output Vendor/NodeMobile.xcframework
+          plutil -lint Vendor/NodeMobile.xcframework/Info.plist
+          df -h /
 
       - name: Validate and package app
         run: |
@@ -84,10 +91,10 @@ jobs:
           shasum -a 256 Build/SillyTavernServer-unsigned.ipa \
             | tee Build/SillyTavernServer-unsigned.ipa.sha256
 
-      - name: Upload experimental runtime and IPA
+      - name: Upload experimental device runtime and IPA
         uses: actions/upload-artifact@v4
         with:
-          name: SillyTavernServer-stage2-node22-experimental
+          name: SillyTavernServer-stage2-node22-device-experimental
           path: |
             Vendor/NodeMobile.xcframework
             Build/SillyTavernServer-unsigned.ipa
