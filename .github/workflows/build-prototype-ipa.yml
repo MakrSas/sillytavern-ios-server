@@ -1,0 +1,72 @@
+name: Build Stage 2 prototype IPA
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "SillyTavernServer/**"
+      - "SillyTavernServer.xcodeproj/**"
+      - "scripts/**"
+      - ".github/workflows/build-prototype-ipa.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Node 18 device-build proof
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select supported Xcode
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Prepare scripts
+        run: chmod +x scripts/*.sh
+
+      - name: Validate embedded JavaScript
+        run: |
+          node --check SillyTavernServer/Resources/nodejs-project/main.js
+          node tests/smoke-runtime.mjs
+          plutil -lint SillyTavernServer/Info.plist
+
+      - name: Download verified NodeMobile 18 runtime
+        run: scripts/prepare-node18-runtime.sh
+
+      - name: Compile simulator slice
+        run: |
+          xcodebuild \
+            -project SillyTavernServer.xcodeproj \
+            -scheme SillyTavernServer \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination "generic/platform=iOS Simulator" \
+            -derivedDataPath Build/SimulatorDerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Build unsigned IPA
+        run: scripts/package-ipa.sh
+
+      - name: Record checksums
+        run: |
+          shasum -a 256 Build/SillyTavernServer-unsigned.ipa \
+            | tee Build/SillyTavernServer-unsigned.ipa.sha256
+
+      - name: Upload IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SillyTavernServer-stage2-node18
+          path: |
+            Build/SillyTavernServer-unsigned.ipa
+            Build/SillyTavernServer-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 14

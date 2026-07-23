@@ -1,0 +1,335 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		A10000000000000000000001 /* SillyTavernServerApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000001 /* SillyTavernServerApp.swift */; };
+		A10000000000000000000002 /* ServerStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000002 /* ServerStatus.swift */; };
+		A10000000000000000000003 /* AppDirectories.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000003 /* AppDirectories.swift */; };
+		A10000000000000000000004 /* ControlClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000004 /* ControlClient.swift */; };
+		A10000000000000000000005 /* ServerController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000005 /* ServerController.swift */; };
+		A10000000000000000000006 /* NodeRuntimeBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000006 /* NodeRuntimeBridge.mm */; };
+		A10000000000000000000007 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000007 /* RootView.swift */; };
+		A10000000000000000000008 /* ServerDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000008 /* ServerDashboardView.swift */; };
+		A10000000000000000000009 /* LocalWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B10000000000000000000009 /* LocalWebView.swift */; };
+		A1000000000000000000000A /* LogsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000A /* LogsView.swift */; };
+		A1000000000000000000000B /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000B /* SettingsView.swift */; };
+		A1000000000000000000000C /* nodejs-project in Resources */ = {isa = PBXBuildFile; fileRef = B1000000000000000000000F /* nodejs-project */; };
+		A1000000000000000000000D /* NodeMobile.xcframework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000011 /* NodeMobile.xcframework */; };
+		A1000000000000000000000E /* WebKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000012 /* WebKit.framework */; };
+		A1000000000000000000000F /* Security.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = B10000000000000000000013 /* Security.framework */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		B10000000000000000000001 /* SillyTavernServerApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/App/SillyTavernServerApp.swift; sourceTree = "<group>"; };
+		B10000000000000000000002 /* ServerStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Models/ServerStatus.swift; sourceTree = "<group>"; };
+		B10000000000000000000003 /* AppDirectories.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Services/AppDirectories.swift; sourceTree = "<group>"; };
+		B10000000000000000000004 /* ControlClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Runtime/ControlClient.swift; sourceTree = "<group>"; };
+		B10000000000000000000005 /* ServerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Runtime/ServerController.swift; sourceTree = "<group>"; };
+		B10000000000000000000006 /* NodeRuntimeBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = SillyTavernServer/Runtime/NodeRuntimeBridge.mm; sourceTree = "<group>"; };
+		B10000000000000000000007 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Views/RootView.swift; sourceTree = "<group>"; };
+		B10000000000000000000008 /* ServerDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Views/ServerDashboardView.swift; sourceTree = "<group>"; };
+		B10000000000000000000009 /* LocalWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Views/LocalWebView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000A /* LogsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Views/LogsView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000B /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SillyTavernServer/Views/SettingsView.swift; sourceTree = "<group>"; };
+		B1000000000000000000000C /* NodeRuntimeBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SillyTavernServer/Runtime/NodeRuntimeBridge.h; sourceTree = "<group>"; };
+		B1000000000000000000000D /* SillyTavernServer-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = SillyTavernServer/Runtime/SillyTavernServer-Bridging-Header.h; sourceTree = "<group>"; };
+		B1000000000000000000000E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = SillyTavernServer/Info.plist; sourceTree = "<group>"; };
+		B1000000000000000000000F /* nodejs-project */ = {isa = PBXFileReference; explicitFileType = folder; path = SillyTavernServer/Resources/nodejs-project; sourceTree = "<group>"; };
+		B10000000000000000000010 /* SillyTavernServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SillyTavernServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B10000000000000000000011 /* NodeMobile.xcframework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcframework; path = Vendor/NodeMobile.xcframework; sourceTree = "<group>"; };
+		B10000000000000000000012 /* WebKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WebKit.framework; path = System/Library/Frameworks/WebKit.framework; sourceTree = SDKROOT; };
+		B10000000000000000000013 /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		C10000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000D /* NodeMobile.xcframework in Frameworks */,
+				A1000000000000000000000E /* WebKit.framework in Frameworks */,
+				A1000000000000000000000F /* Security.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		D10000000000000000000001 = {
+			isa = PBXGroup;
+			children = (
+				D10000000000000000000002 /* Sources */,
+				D10000000000000000000003 /* Resources */,
+				D10000000000000000000004 /* Frameworks */,
+				D10000000000000000000005 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		D10000000000000000000002 /* Sources */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000001 /* SillyTavernServerApp.swift */,
+				B10000000000000000000002 /* ServerStatus.swift */,
+				B10000000000000000000003 /* AppDirectories.swift */,
+				B10000000000000000000004 /* ControlClient.swift */,
+				B10000000000000000000005 /* ServerController.swift */,
+				B10000000000000000000006 /* NodeRuntimeBridge.mm */,
+				B1000000000000000000000C /* NodeRuntimeBridge.h */,
+				B1000000000000000000000D /* SillyTavernServer-Bridging-Header.h */,
+				B10000000000000000000007 /* RootView.swift */,
+				B10000000000000000000008 /* ServerDashboardView.swift */,
+				B10000000000000000000009 /* LocalWebView.swift */,
+				B1000000000000000000000A /* LogsView.swift */,
+				B1000000000000000000000B /* SettingsView.swift */,
+			);
+			name = Sources;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000003 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B1000000000000000000000E /* Info.plist */,
+				B1000000000000000000000F /* nodejs-project */,
+			);
+			name = Resources;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000004 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000011 /* NodeMobile.xcframework */,
+				B10000000000000000000012 /* WebKit.framework */,
+				B10000000000000000000013 /* Security.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
+		D10000000000000000000005 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				B10000000000000000000010 /* SillyTavernServer.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		E10000000000000000000001 /* SillyTavernServer */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F10000000000000000000001 /* Build configuration list for PBXNativeTarget "SillyTavernServer" */;
+			buildPhases = (
+				C10000000000000000000002 /* Sources */,
+				C10000000000000000000001 /* Frameworks */,
+				C10000000000000000000003 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SillyTavernServer;
+			productName = SillyTavernServer;
+			productReference = B10000000000000000000010 /* SillyTavernServer.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E10000000000000000000002 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 1640;
+				LastUpgradeCheck = 1640;
+				TargetAttributes = {
+					E10000000000000000000001 = {
+						CreatedOnToolsVersion = 16.4;
+					};
+				};
+			};
+			buildConfigurationList = F10000000000000000000002 /* Build configuration list for PBXProject "SillyTavernServer" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = ru;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				ru,
+				en,
+				Base,
+			);
+			mainGroup = D10000000000000000000001;
+			productRefGroup = D10000000000000000000005 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				E10000000000000000000001 /* SillyTavernServer */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		C10000000000000000000003 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1000000000000000000000C /* nodejs-project in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		C10000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A10000000000000000000001 /* SillyTavernServerApp.swift in Sources */,
+				A10000000000000000000002 /* ServerStatus.swift in Sources */,
+				A10000000000000000000003 /* AppDirectories.swift in Sources */,
+				A10000000000000000000004 /* ControlClient.swift in Sources */,
+				A10000000000000000000005 /* ServerController.swift in Sources */,
+				A10000000000000000000006 /* NodeRuntimeBridge.mm in Sources */,
+				A10000000000000000000007 /* RootView.swift in Sources */,
+				A10000000000000000000008 /* ServerDashboardView.swift in Sources */,
+				A10000000000000000000009 /* LocalWebView.swift in Sources */,
+				A1000000000000000000000A /* LogsView.swift in Sources */,
+				A1000000000000000000000B /* SettingsView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		F20000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		F20000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		F20000000000000000000003 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SillyTavernServer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-lz",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.sillytavern.server.experimental;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = SillyTavernServer/Runtime/SillyTavernServer-Bridging-Header.h;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		F20000000000000000000004 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_BITCODE = NO;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/Vendor",
+				);
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SillyTavernServer/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 0.1.0;
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-lc++",
+					"-lz",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = app.sillytavern.server.experimental;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SWIFT_OBJC_BRIDGING_HEADER = SillyTavernServer/Runtime/SillyTavernServer-Bridging-Header.h;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		F10000000000000000000001 /* Build configuration list for PBXNativeTarget "SillyTavernServer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000003 /* Debug */,
+				F20000000000000000000004 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		F10000000000000000000002 /* Build configuration list for PBXProject "SillyTavernServer" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				F20000000000000000000001 /* Debug */,
+				F20000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = E10000000000000000000002 /* Project object */;
+}

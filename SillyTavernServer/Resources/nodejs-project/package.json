@@ -1,0 +1,9 @@
+{
+  "name": "sillytavern-ios-runtime-smoke-test",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  }
+}

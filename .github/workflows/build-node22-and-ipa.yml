@@ -1,0 +1,96 @@
+name: Build experimental Node 22 and IPA
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-runtime-slice:
+    name: Node 22 / ${{ matrix.target }}
+    runs-on: macos-15
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        target:
+          - arm64
+          - arm64-simulator
+
+    steps:
+      - name: Checkout app source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: |
+          sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+          xcodebuild -version
+          uname -m
+
+      - name: Build pinned NodeMobile 22 port
+        run: |
+          chmod +x scripts/build-node22-slice.sh
+          scripts/build-node22-slice.sh "${{ matrix.target }}"
+
+      - name: Upload framework slice
+        uses: actions/upload-artifact@v4
+        with:
+          name: node22-${{ matrix.target }}
+          path: ${{ runner.temp }}/node22-${{ matrix.target }}
+          if-no-files-found: error
+          retention-days: 7
+
+  combine-and-build:
+    name: XCFramework and unsigned IPA
+    needs: build-runtime-slice
+    runs-on: macos-15
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout app source
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.4
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app/Contents/Developer
+
+      - name: Download device slice
+        uses: actions/download-artifact@v4
+        with:
+          name: node22-arm64
+          path: Build/runtime/device
+
+      - name: Download simulator slice
+        uses: actions/download-artifact@v4
+        with:
+          name: node22-arm64-simulator
+          path: Build/runtime/simulator
+
+      - name: Create XCFramework
+        run: |
+          test -f Build/runtime/device/NodeMobile.framework/NodeMobile
+          test -f Build/runtime/simulator/NodeMobile.framework/NodeMobile
+          xcodebuild -create-xcframework \
+            -framework Build/runtime/device/NodeMobile.framework \
+            -framework Build/runtime/simulator/NodeMobile.framework \
+            -output Vendor/NodeMobile.xcframework
+
+      - name: Validate and package app
+        run: |
+          chmod +x scripts/package-ipa.sh
+          node --check SillyTavernServer/Resources/nodejs-project/main.js
+          node tests/smoke-runtime.mjs
+          scripts/package-ipa.sh
+          shasum -a 256 Build/SillyTavernServer-unsigned.ipa \
+            | tee Build/SillyTavernServer-unsigned.ipa.sha256
+
+      - name: Upload experimental runtime and IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: SillyTavernServer-stage2-node22-experimental
+          path: |
+            Vendor/NodeMobile.xcframework
+            Build/SillyTavernServer-unsigned.ipa
+            Build/SillyTavernServer-unsigned.ipa.sha256
+          if-no-files-found: error
+          retention-days: 7

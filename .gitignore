@@ -1,0 +1,8 @@
+Vendor/NodeMobile.xcframework/
+.build/
+DerivedData/
+Build/
+*.ipa
+*.xcarchive
+xcuserdata/
+.DS_Store
