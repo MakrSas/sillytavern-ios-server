@@ -28,6 +28,8 @@ NodeMobile и запускает настоящий HTTP-сервер тольк
 - проверка последнего официального релиза SillyTavern через GitHub API;
 - проверяемая загрузка официального NodeMobile 18.20.4;
 - отдельная GitHub Actions-сборка экспериментального NodeMobile 22.9.0;
+- патчи host-инструментов и актуального набора статических библиотек Node 22
+  для сборки iOS framework;
 - упаковщик официального исходного архива SillyTavern без выполнения его
   shell-скриптов и без npm lifecycle scripts;
 - unsigned IPA, предназначенный для последующей подписи SideStore/AltStore.

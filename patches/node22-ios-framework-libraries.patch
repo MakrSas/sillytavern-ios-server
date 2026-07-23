@@ -1,0 +1,141 @@
+diff --git a/tools/ios_framework_prepare.sh b/tools/ios_framework_prepare.sh
+index 9885866..4828a06 100755
+--- a/tools/ios_framework_prepare.sh
++++ b/tools/ios_framework_prepare.sh
+@@ -18,7 +18,6 @@ XCODE_PROJECT_PATH='tools/ios-framework/NodeMobile.xcodeproj/project.pbxproj'
+ 
+ declare -a outputs_common=(
+     "libada.a"
+-    "libbase64.a"
+     "libbrotli.a"
+     "libcares.a"
+     "libgtest_main.a"
+@@ -28,17 +27,24 @@ declare -a outputs_common=(
+     "libnghttp2.a"
+     "libnghttp3.a"
+     "libngtcp2.a"
++    "libnbytes.a"
++    "libncrypto.a"
+     "libnode.a"
+     "libopenssl.a"
++    "libsimdjson.a"
+     "libsimdutf.a"
++    "libsqlite.a"
+     "libuv.a"
+     "libuvwasi.a"
++    "libv8_abseil.a"
+     "libv8_base_without_compiler.a"
+     "libv8_compiler.a"
+     "libv8_initializers.a"
++    "libv8_initializers_slow.a"
+     "libv8_libbase.a"
+     "libv8_libplatform.a"
+     "libv8_snapshot.a"
++    "libv8_turboshaft.a"
+     "libv8_zlib.a"
+     "libzlib.a"
+ )
+@@ -50,13 +56,43 @@ declare -a outputs_x64_only=(
+     "libbase64_ssse3.a"
+ )
+ declare -a outputs_arm64_only=(
+-    "libbase64_neon64.a"
+     "libzlib_inflate_chunk_simd.a"
+ )
+ 
++# The iOS framework project still references libraries removed after Node 18.
++# Strip those references before Xcode evaluates the Frameworks build phase.
++declare -a outputs_removed_common=(
++    "libbase64.a"
++)
++declare -a outputs_removed_arm64=(
++    "libbase64_neon64.a"
++)
++
++# These Node 22 archives are not represented by the legacy Xcode project.
++# Pass them to the linker explicitly until the upstream project is regenerated.
++declare -a outputs_node22_extra=(
++    "libnbytes.a"
++    "libncrypto.a"
++    "libsimdjson.a"
++    "libsqlite.a"
++    "libv8_abseil.a"
++    "libv8_initializers_slow.a"
++    "libv8_turboshaft.a"
++)
++
+ declare -a outputs_x64=("${outputs_common[@]}" "${outputs_x64_only[@]}")
+ declare -a outputs_arm64=("${outputs_common[@]}" "${outputs_arm64_only[@]}")
+ 
++node22_extra_linker_flags() {
++  local library_root
++  local linker_flags="-all_load -v -lc++"
++  library_root="$(cd "$TARGET_LIBRARY_PATH" && pwd)"
++  for output_file in "${outputs_node22_extra[@]}"; do
++    linker_flags+=" ${library_root}/${output_file}"
++  done
++  printf '%s' "$linker_flags"
++}
++
+ build_for_arm64_device() {
+   make clean
+   GYP_DEFINES="target_arch=arm64 host_os=mac target_os=ios"
+@@ -135,6 +171,9 @@ build_framework_for_arm64_device() {
+   done
+   # Remove libraries that do not exist for this target
+   cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
++  for output_file in "${outputs_removed_common[@]}" "${outputs_removed_arm64[@]}"; do
++    grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
++  done
+   for output_file in "${outputs_x64_only[@]}"; do
+     grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
+   done
+@@ -145,7 +184,8 @@ build_framework_for_arm64_device() {
+     -configuration Release \
+     -arch arm64 \
+     -sdk "iphoneos" \
+-    SYMROOT=$FRAMEWORK_TARGET_DIR/iphoneos-arm64
++    SYMROOT=$FRAMEWORK_TARGET_DIR/iphoneos-arm64 \
++    OTHER_LDFLAGS="$(node22_extra_linker_flags)"
+   mv $XCODE_PROJECT_PATH.bak $XCODE_PROJECT_PATH
+ }
+ 
+@@ -157,6 +197,9 @@ build_framework_for_arm64_simulator() {
+   done
+   # Remove libraries that do not exist for this target
+   cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
++  for output_file in "${outputs_removed_common[@]}" "${outputs_removed_arm64[@]}"; do
++    grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
++  done
+   for output_file in "${outputs_x64_only[@]}"; do
+     grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
+   done
+@@ -167,7 +210,8 @@ build_framework_for_arm64_simulator() {
+     -configuration Release \
+     -arch arm64 \
+     -sdk "iphonesimulator" \
+-    SYMROOT=$FRAMEWORK_TARGET_DIR/iphonesimulator-arm64
++    SYMROOT=$FRAMEWORK_TARGET_DIR/iphonesimulator-arm64 \
++    OTHER_LDFLAGS="$(node22_extra_linker_flags)"
+   mv $XCODE_PROJECT_PATH.bak $XCODE_PROJECT_PATH
+ }
+ 
+@@ -179,6 +223,9 @@ build_framework_for_x64_simulator() {
+   done
+   # Remove libraries that do not exist for this target
+   cp $XCODE_PROJECT_PATH $XCODE_PROJECT_PATH.bak
++  for output_file in "${outputs_removed_common[@]}"; do
++    grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
++  done
+   for output_file in "${outputs_arm64_only[@]}"; do
+     grep -vF "$output_file" $XCODE_PROJECT_PATH > temp && mv temp $XCODE_PROJECT_PATH
+   done
+@@ -189,6 +236,7 @@ build_framework_for_x64_simulator() {
+     -configuration Release \
+     -arch x86_64 \
+     -sdk "iphonesimulator" \
+-    SYMROOT=$FRAMEWORK_TARGET_DIR/iphonesimulator-x64
++    SYMROOT=$FRAMEWORK_TARGET_DIR/iphonesimulator-x64 \
++    OTHER_LDFLAGS="$(node22_extra_linker_flags)"
+   mv $XCODE_PROJECT_PATH.bak $XCODE_PROJECT_PATH
+ }

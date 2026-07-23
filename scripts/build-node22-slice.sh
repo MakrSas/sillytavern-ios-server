@@ -7,6 +7,7 @@ readonly NODE_MOBILE_REPOSITORY="https://github.com/nodejs-mobile/nodejs-mobile.
 readonly NODE_MOBILE_COMMIT="106c51f95d55d1010de56a2ffd09bfb4ba819a47"
 readonly APP_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 readonly NODE_MOBILE_PATCH="${APP_ROOT}/patches/node22-ios-host-tools.patch"
+readonly NODE_MOBILE_FRAMEWORK_PATCH="${APP_ROOT}/patches/node22-ios-framework-libraries.patch"
 
 target="${1:-}"
 case "${target}" in
@@ -60,6 +61,8 @@ fi
 
 git -C "${source_root}" apply --check "${NODE_MOBILE_PATCH}"
 git -C "${source_root}" apply "${NODE_MOBILE_PATCH}"
+git -C "${source_root}" apply --check "${NODE_MOBILE_FRAMEWORK_PATCH}"
+git -C "${source_root}" apply "${NODE_MOBILE_FRAMEWORK_PATCH}"
 git -C "${source_root}" diff --check
 
 python3 -m venv "${source_root}/.venv"
