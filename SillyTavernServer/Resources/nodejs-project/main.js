@@ -1,6 +1,12 @@
-import http from 'node:http';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
+
+// ESM's built-in export synchronization evaluates node:http's lazy Undici
+// exports. Undici requires WebAssembly, which V8 disables under iOS --jitless.
+// Loading node:http through CommonJS avoids touching those unrelated exports.
+const require = createRequire(import.meta.url);
+const http = require('node:http');
 
 const HOST = '127.0.0.1';
 

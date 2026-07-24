@@ -28,6 +28,7 @@ await once(occupiedServer, 'listening');
 const child = spawn(
   process.execPath,
   [
+    '--jitless',
     entrypoint,
     '--preferred-port',
     '18123',
