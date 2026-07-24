@@ -105,7 +105,7 @@ jobs:
         uses: actions/cache/restore@v6
         with:
           path: SillyTavernServer/Resources/nodejs-project/SillyTavern
-          key: sillytavern-ios-1.18.0-node22.9.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch') }}
+          key: sillytavern-ios-1.18.0-node22.9.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch', 'patches/sillytavern-transformers-2.14.6-ios-jitless.patch') }}
 
       - name: Prepare pinned SillyTavern payload
         if: steps.sillytavern-payload-cache.outputs.cache-hit != 'true'
@@ -137,7 +137,7 @@ jobs:
         uses: actions/cache/save@v6
         with:
           path: SillyTavernServer/Resources/nodejs-project/SillyTavern
-          key: sillytavern-ios-1.18.0-node22.9.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch') }}
+          key: sillytavern-ios-1.18.0-node22.9.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch', 'patches/sillytavern-transformers-2.14.6-ios-jitless.patch') }}
 
       - name: Create device-only XCFramework
         run: |

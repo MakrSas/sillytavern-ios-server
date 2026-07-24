@@ -1,0 +1,40 @@
+diff --git a/src/tokenizers.js b/src/tokenizers.js
+--- a/src/tokenizers.js
++++ b/src/tokenizers.js
+@@ -43,6 +43,24 @@ import { Template } from '@huggingface/jinja';
+ import { Template } from '@huggingface/jinja';
+ 
++// NodeMobile's iOS ICU build does not expose the short Unicode property
++// aliases used by the upstream tokenizer. Keep the same C* categories with
++// explicit code-point ranges so the module can parse in --jitless mode.
++const CONTROL_CODE_POINT_RANGES = [
++    [0x0000, 0x001F], [0x007F, 0x009F], [0x00AD, 0x00AD],
++    [0x0600, 0x0605], [0x061C, 0x061C], [0x06DD, 0x06DD],
++    [0x070F, 0x070F], [0x0890, 0x0891], [0x08E2, 0x08E2],
++    [0x180B, 0x180F], [0x200B, 0x200F], [0x202A, 0x202E],
++    [0x2060, 0x2064], [0x2066, 0x206F], [0x20F0, 0x20F0],
++    [0xD800, 0xDFFF], [0xE000, 0xF8FF], [0xFEFF, 0xFEFF],
++    [0xFFF9, 0xFFFB], [0xF0000, 0xFFFFD], [0x100000, 0x10FFFD],
++];
++
++function isControlCodePoint(codePoint) {
++    return CONTROL_CODE_POINT_RANGES.some(([start, end]) => codePoint >= start && codePoint <= end);
++}
++
+ 
+ /**
+@@ -1209,7 +1227,5 @@ export class PreTrainedTokenizer {
+             case '\r':
+                 // These are technically control characters but we count them as whitespace characters.
+                 return false;
+ 
+             default:
+-                // Check if unicode category starts with C:
+-                // Cc - Control
+-                // Cf - Format
+-                // Co - Private Use
+-                // Cs - Surrogate
+-                return /^\p{Cc}|\p{Cf}|\p{Co}|\p{Cs}$/u.test(char);
++                return isControlCodePoint(char.codePointAt(0));
+         }
+     }

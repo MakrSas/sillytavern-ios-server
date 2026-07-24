@@ -8,6 +8,7 @@ repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 requested_tag="${1:-latest}"
 destination="${2:-${repo_root}/Build/SillyTavernPayload}"
 compatibility_patch="${repo_root}/patches/sillytavern-1.18.0-ios-jitless.patch"
+transformers_patch="${repo_root}/patches/sillytavern-transformers-2.14.6-ios-jitless.patch"
 frontend_compiler="${repo_root}/scripts/compile-sillytavern-frontend.mjs"
 readonly SILLYTAVERN_TAG="1.18.0"
 readonly SILLYTAVERN_COMMIT="51ad27fb86d39a3daca3adaa970375c9670c12df"
@@ -45,6 +46,7 @@ test -f "${source_directory}/package.json"
 test -f "${source_directory}/package-lock.json"
 test -f "${source_directory}/server.js"
 test -f "${compatibility_patch}"
+test -f "${transformers_patch}"
 test -f "${frontend_compiler}"
 
 (
@@ -69,6 +71,12 @@ fi
 (
   cd "${source_directory}"
   npm ci --omit=dev --ignore-scripts --no-audit --no-fund
+)
+
+(
+  cd "${source_directory}/node_modules/sillytavern-transformers"
+  git apply --no-index --recount --check "${transformers_patch}"
+  git apply --no-index --recount "${transformers_patch}"
 )
 
 test -d "${source_directory}/node_modules/@jimp/js-jpeg"
