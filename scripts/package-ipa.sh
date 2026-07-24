@@ -59,9 +59,22 @@ cp -R "${product}" "${payload_root}/Payload/"
   /usr/bin/zip -qry "${output}" Payload
 )
 
-unzip -l "${output}" | tee "${ipa_contents}"
+unzip -l "${output}" > "${ipa_contents}"
+echo "IPA table contains $(wc -l < "${ipa_contents}") lines."
 grep -Fq "Payload/SillyTavernServer.app/Frameworks/NodeMobile.framework/NodeMobile" "${ipa_contents}" || {
   echo "Packaged IPA lost NodeMobile.framework." >&2
+  exit 1
+}
+grep -Fq "Payload/SillyTavernServer.app/nodejs-project/SillyTavern/server.js" "${ipa_contents}" || {
+  echo "Packaged IPA lost the SillyTavern server payload." >&2
+  exit 1
+}
+grep -Fq "Payload/SillyTavernServer.app/nodejs-project/SillyTavern/ios-package-manifest.json" "${ipa_contents}" || {
+  echo "Packaged IPA lost the SillyTavern package manifest." >&2
+  exit 1
+}
+grep -Fq "Payload/SillyTavernServer.app/nodejs-project/SillyTavern/ios-runtime-capabilities.json" "${ipa_contents}" || {
+  echo "Packaged IPA lost the iOS compatibility manifest." >&2
   exit 1
 }
 

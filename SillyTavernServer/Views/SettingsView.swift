@@ -39,9 +39,9 @@ struct SettingsView: View {
                     .disabled(controller.directories == nil)
                 }
 
-                Section("Ограничение прототипа") {
-                    Text("Стоп и перезапуск управляют HTTP-сервером внутри одного Node runtime. Повторный запуск node_start() в одном процессе официально не поддержан.")
-                    Text("SillyTavern и его node_modules будут добавлены только после успешной сборки и device smoke-test Node 22.")
+                Section("Ограничения iOS") {
+                    Text("SillyTavern 1.18.0 запускается в отдельном Worker внутри NodeMobile. Стоп и перезапуск пересоздают Worker, не перезапуская node_start().")
+                    Text("В режиме iOS без JIT недоступен WebAssembly: подсчёт токенов выполняется приблизительно, а серверная обработка WebP и AVIF временно отключена. PNG и JPEG поддерживаются.")
                 }
                 .font(.footnote)
                 .foregroundStyle(.secondary)

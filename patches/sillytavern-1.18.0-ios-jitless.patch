@@ -1,0 +1,173 @@
+diff --git a/src/endpoints/tokenizers.js b/src/endpoints/tokenizers.js
+index 02d7b19..a3dbf33 100644
+--- a/src/endpoints/tokenizers.js
++++ b/src/endpoints/tokenizers.js
+@@ -10,7 +10,6 @@ import { sync as writeFileAtomicSync } from 'write-file-atomic';
+ 
+ import { Tokenizer } from '@agnai/web-tokenizers';
+ import { SentencePieceProcessor } from '@agnai/sentencepiece-js';
+-import tiktoken from 'tiktoken';
+ 
+ import { convertClaudePrompt } from '../prompt-converters.js';
+ import { TEXTGEN_TYPES } from '../constants.js';
+@@ -43,6 +42,42 @@ export const TEXT_COMPLETION_MODELS = [
+ 
+ const BYTES_PER_TOKEN = 3.35;
+ const IS_DOWNLOAD_ALLOWED = getConfigValue('enableDownloadableTokenizers', true, 'boolean');
+ const gunzip = promisify(zlib.gunzip);
++
++/**
++ * WebAssembly is unavailable in the iOS jitless runtime. This reversible byte
++ * tokenizer keeps prompt estimation and chunk previews operational without
++ * loading tiktoken's WASM module. Its IDs are local estimates, not model IDs.
++ */
++function createPortableTokenizer() {
++    return {
++        encode(text) {
++            const bytes = Buffer.from(String(text), 'utf8');
++            const ids = [];
++            for (let index = 0; index < bytes.length; index += 3) {
++                const length = Math.min(3, bytes.length - index);
++                const first = bytes[index] ?? 0;
++                const second = bytes[index + 1] ?? 0;
++                const third = bytes[index + 2] ?? 0;
++                ids.push((
++                    (length << 24)
++                    | (first << 16)
++                    | (second << 8)
++                    | third
++                ) >>> 0);
++            }
++            return Uint32Array.from(ids);
++        },
++        decode(ids) {
++            const bytes = [];
++            for (const rawId of ids) {
++                const id = Number(rawId) >>> 0;
++                const length = Math.min(3, id >>> 24);
++                if (length >= 1) bytes.push((id >>> 16) & 0xff);
++                if (length >= 2) bytes.push((id >>> 8) & 0xff);
++                if (length >= 3) bytes.push(id & 0xff);
++            }
++            return Uint8Array.from(bytes);
++        },
++    };
++}
+ 
+ /**
+  * Guesstimates the token count for a string.
+@@ -532,8 +567,8 @@ export function getTiktokenTokenizer(model) {
+         return tokenizersCache[model];
+     }
+ 
+-    const tokenizer = tiktoken.encoding_for_model(model);
+-    console.info('Instantiated the tokenizer for', model);
++    const tokenizer = createPortableTokenizer();
++    console.info('Instantiated the portable iOS tokenizer for', model);
+     tokenizersCache[model] = tokenizer;
+     return tokenizer;
+ }
+diff --git a/server.js b/server.js
+index a960baa..a5ee9d1 100755
+--- a/server.js
++++ b/server.js
+@@ -8,7 +8,9 @@ const cliArgs = new CommandLineParser().parse(process.argv);
+ globalThis.DATA_ROOT = cliArgs.dataRoot;
+ globalThis.COMMAND_LINE_ARGS = cliArgs;
+-process.chdir(serverDirectory);
++if (process.cwd() !== serverDirectory) {
++    process.chdir(serverDirectory);
++}
+ 
+ try {
+     await import('./src/server-main.js');
+diff --git a/src/jimp.js b/src/jimp.js
+index 10de847..389395c 100644
+--- a/src/jimp.js
++++ b/src/jimp.js
+@@ -1,10 +1,7 @@
+ import { createJimp } from '@jimp/core';
+ 
+-// Optimized image formats
+-import webp from '@jimp/wasm-webp';
+-import png from '@jimp/wasm-png';
+-import jpeg from '@jimp/wasm-jpeg';
+-import avif from '@jimp/wasm-avif';
++// Pure JavaScript codecs for the iOS jitless runtime.
++import png from '@jimp/js-png';
++import jpeg from '@jimp/js-jpeg';
+ 
+ // Other image formats
+ import bmp, { msBmp } from '@jimp/js-bmp';
+@@ -30,9 +27,9 @@ const defaultPlugins = [
+     quantize.methods,
+ ];
+ 
+-// A custom jimp that uses WASM for optimized formats and JS for the rest
++// WebP and AVIF processing is unavailable until iOS gains a WASM interpreter.
+ const Jimp = createJimp({
+-    formats: [webp, png, jpeg, avif, bmp, msBmp, gif, tiff],
++    formats: [png, jpeg, bmp, msBmp, gif, tiff],
+     plugins: [...defaultPlugins],
+ });
+ 
+diff --git a/src/middleware/webpack-serve.js b/src/middleware/webpack-serve.js
+index a259230..830e13f 100644
+--- a/src/middleware/webpack-serve.js
++++ b/src/middleware/webpack-serve.js
+@@ -1,5 +1,5 @@
++import fs from 'node:fs';
+ import path from 'node:path';
+-import webpack from 'webpack';
+ import getPublicLibConfig from '../../webpack.config.js';
+ 
+ export default function getWebpackServeMiddleware() {
+@@ -11,7 +11,7 @@ export default function getWebpackServeMiddleware() {
+      * @type {import('express').RequestHandler}
+      */
+     function devMiddleware(req, res, next) {
+-        const publicLibConfig = getPublicLibConfig();
++        const publicLibConfig = getPublicLibConfig({ forceDist: true });
+         const outputPath = publicLibConfig.output?.path;
+         const outputFile = publicLibConfig.output?.filename;
+         const parsedPath = path.parse(req.path);
+@@ -31,24 +31,20 @@ export default function getWebpackServeMiddleware() {
+      * @returns {Promise<void>}
+      */
+     devMiddleware.runWebpackCompiler = ({ forceDist = false, pruneCache = false } = {}) => {
+-        console.log();
+-        console.log('Compiling frontend libraries...');
+-
+-        const publicLibConfig = getPublicLibConfig({ forceDist, pruneCache });
+-        const compiler = webpack(publicLibConfig);
+-
+-        return new Promise((resolve) => {
+-            compiler.run((_error, stats) => {
+-                const output = stats?.toString(publicLibConfig.stats);
+-                if (output) {
+-                    console.log(output);
+-                    console.log();
+-                }
+-                compiler.close(() => {
+-                    resolve();
+-                });
+-            });
+-        });
++        void forceDist;
++        void pruneCache;
++        const publicLibConfig = getPublicLibConfig({ forceDist: true });
++        const outputPath = publicLibConfig.output?.path;
++        const outputFile = publicLibConfig.output?.filename;
++        const compiledLibrary = outputPath && outputFile
++            ? path.join(outputPath, outputFile)
++            : '';
++
++        if (!compiledLibrary || !fs.existsSync(compiledLibrary)) {
++            return Promise.reject(new Error('Precompiled frontend library is missing from the iOS payload.'));
++        }
++
++        console.log('Using the frontend library precompiled by trusted CI.');
++        return Promise.resolve();
+     };
+ 
+     return devMiddleware;

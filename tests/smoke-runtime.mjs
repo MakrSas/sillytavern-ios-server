@@ -20,6 +20,7 @@ const dataDirectory = await fs.mkdtemp(path.join(os.tmpdir(), 'st-ios-smoke-'));
 const events = new EventEmitter();
 const recordedMarkers = new Map();
 let partialOutput = '';
+let allOutput = '';
 
 const occupiedServer = http.createServer((_request, response) => response.end('occupied'));
 occupiedServer.listen(18_123, '127.0.0.1');
@@ -39,6 +40,7 @@ const child = spawn(
 );
 
 function recordOutput(chunk) {
+  allOutput += chunk;
   partialOutput += chunk;
   const lines = partialOutput.split(/\r?\n/);
   partialOutput = lines.pop() ?? '';
@@ -58,15 +60,22 @@ function recordOutput(chunk) {
 child.stdout.setEncoding('utf8');
 child.stdout.on('data', recordOutput);
 child.stderr.setEncoding('utf8');
-child.stderr.on('data', (chunk) => process.stderr.write(chunk));
+child.stderr.on('data', (chunk) => {
+  allOutput += chunk;
+  process.stderr.write(chunk);
+});
 
-async function marker(name, timeoutMilliseconds = 10_000) {
+async function marker(name, timeoutMilliseconds = 60_000) {
   const existing = recordedMarkers.get(name);
   if (existing?.length) return existing.at(-1);
 
   const timeout = AbortSignal.timeout(timeoutMilliseconds);
-  const [value] = await once(events, name, { signal: timeout });
-  return value;
+  try {
+    const [value] = await once(events, name, { signal: timeout });
+    return value;
+  } catch (error) {
+    throw new Error(`Timed out waiting for ${name}.\n${allOutput}`, { cause: error });
+  }
 }
 
 async function command(baseURL, name, port) {
@@ -91,6 +100,7 @@ try {
   assert.equal(health.serverRunning, true);
   assert.equal(health.serverPort, 18_124);
   assert.match(health.runtimeVersion, /^v\d+\./);
+  assert.equal(health.sillyTavernVersion, '1.18.0');
 
   const stopped = await command(controlURL, 'stop', 18_123);
   assert.equal(stopped.state, 'stopped');
@@ -104,17 +114,46 @@ try {
   const pageResponse = await fetch('http://127.0.0.1:18125/');
   const page = await pageResponse.text();
   assert.equal(pageResponse.status, 200);
-  assert.match(page, /Локальный Node\.js-сервер работает/);
+  assert.match(page, /SillyTavern/i);
+
+  const csrfResponse = await fetch('http://127.0.0.1:18125/csrf-token');
+  const { token: csrfToken } = await csrfResponse.json();
+  const setCookies = csrfResponse.headers.getSetCookie?.()
+    ?? [csrfResponse.headers.get('set-cookie')].filter(Boolean);
+  const sessionCookie = setCookies
+    .map((cookie) => cookie.split(';', 1)[0])
+    .join('; ');
+  assert.match(csrfToken, /.+/);
+  assert.match(sessionCookie, /.+/);
+
+  const tokenizerResponse = await fetch('http://127.0.0.1:18125/api/tokenizers/gpt2/encode', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'cookie': sessionCookie,
+      'x-csrf-token': csrfToken,
+    },
+    body: JSON.stringify({ text: 'SillyTavern iOS tokenizer smoke test' }),
+  });
+  const tokenizerResult = await tokenizerResponse.json();
+  assert.equal(tokenizerResponse.status, 200);
+  assert.ok(tokenizerResult.count > 0);
+  assert.equal(tokenizerResult.ids.length, tokenizerResult.count);
 
   console.log(JSON.stringify({
     ok: true,
     runtime: health.runtimeVersion,
+    sillyTavern: health.sillyTavernVersion,
+    tokenizerTokens: tokenizerResult.count,
     controlPort: control.port,
     automaticPort: initial.port,
     restartedPort: restarted.port,
   }, null, 2));
 } finally {
-  child.kill('SIGTERM');
+  if (child.exitCode === null) {
+    child.kill('SIGTERM');
+    await once(child, 'exit');
+  }
   occupiedServer.close();
   await fs.rm(dataDirectory, { recursive: true, force: true });
 }

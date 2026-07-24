@@ -95,6 +95,43 @@ jobs:
           path: ${{ runner.temp }}/node22-arm64
           key: node22-ios-arm64-${{ hashFiles('scripts/build-node22-slice.sh', 'patches/node22-ios-host-tools.patch', 'patches/node22-ios-framework-libraries.patch') }}
 
+      - name: Restore cached SillyTavern 1.18.0 payload
+        id: sillytavern-payload-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: SillyTavernServer/Resources/nodejs-project/SillyTavern
+          key: sillytavern-ios-1.18.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch') }}
+
+      - name: Prepare pinned SillyTavern payload
+        if: steps.sillytavern-payload-cache.outputs.cache-hit != 'true'
+        run: |
+          chmod +x scripts/package-sillytavern.sh
+          scripts/package-sillytavern.sh \
+            1.18.0 \
+            SillyTavernServer/Resources/nodejs-project/SillyTavern
+
+      - name: Validate SillyTavern payload
+        run: |
+          test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/server.js
+          test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/ios-package-manifest.json
+          test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/ios-runtime-capabilities.json
+          test -n "$(find SillyTavernServer/Resources/nodejs-project/SillyTavern/dist/_webpack \
+            -type f -path '*/output/lib.js' -size +100000c -print -quit)"
+          test "$(
+            node -p "require('./SillyTavernServer/Resources/nodejs-project/SillyTavern/package.json').version"
+          )" = "1.18.0"
+          node --jitless tests/jimp-jitless.mjs \
+            SillyTavernServer/Resources/nodejs-project/SillyTavern
+          node --jitless tests/fetch-jitless.cjs \
+            SillyTavernServer/Resources/nodejs-project/SillyTavern
+
+      - name: Save SillyTavern 1.18.0 payload cache
+        if: steps.sillytavern-payload-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: SillyTavernServer/Resources/nodejs-project/SillyTavern
+          key: sillytavern-ios-1.18.0-${{ hashFiles('scripts/package-sillytavern.sh', 'scripts/compile-sillytavern-frontend.mjs', 'patches/sillytavern-1.18.0-ios-jitless.patch') }}
+
       - name: Create device-only XCFramework
         run: |
           mkdir -p Vendor
@@ -108,6 +145,7 @@ jobs:
         run: |
           chmod +x scripts/package-ipa.sh
           node --check SillyTavernServer/Resources/nodejs-project/main.js
+          node --check SillyTavernServer/Resources/nodejs-project/sillytavern-worker.cjs
           node tests/smoke-runtime.mjs
           scripts/package-ipa.sh
           shasum -a 256 Build/SillyTavernServer-unsigned.ipa \
@@ -116,7 +154,7 @@ jobs:
       - name: Upload experimental device runtime and IPA
         uses: actions/upload-artifact@v4
         with:
-          name: SillyTavernServer-stage2-node22-device-experimental
+          name: SillyTavernServer-stage3-sillytavern-1.18.0-node22
           path: |
             Vendor/NodeMobile.xcframework
             Build/SillyTavernServer-unsigned.ipa

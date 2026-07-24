@@ -4,6 +4,8 @@
 
 Первый фактический прогон зафиксирован в
 [`DEVICE_TEST_RESULT_2026-07-23.md`](DEVICE_TEST_RESULT_2026-07-23.md).
+Node 22 device-gate зафиксирован в
+[`DEVICE_TEST_RESULT_2026-07-24.md`](DEVICE_TEST_RESULT_2026-07-24.md).
 
 ## Среда
 
@@ -44,12 +46,12 @@
 - [ ] ограничение размера лога работает;
 - [ ] удаление/обновление приложения не заявляется как безопасное без отдельной проверки.
 
-## Node 22 gate
+## Stage 3 gate
 
-- [ ] `typeof WebAssembly` записан;
-- [ ] импорт `@jimp/wasm-png` проверен;
-- [ ] импорт `tiktoken` проверен;
-- [ ] импорт `src/jimp.js` проверен;
-- [ ] импорт `src/server-startup.js` проверен;
+- [x] отсутствие WebAssembly записано;
+- [ ] portable `node-fetch` выполняет запрос на iPhone;
+- [ ] JS-кодеки Jimp читают и записывают PNG/JPEG на iPhone;
+- [ ] приблизительный iOS-токенизатор отвечает через API;
 - [ ] настоящий `server.js` SillyTavern запущен;
 - [ ] главная страница SillyTavern открыта в WKWebView.
+- [ ] stop/start/restart пересоздают Worker без завершения приложения.

@@ -35,8 +35,8 @@ final class ServerController: ObservableObject {
         }
     }
 
-    let prototypeVersion = "0.1.0"
-    let bundledSillyTavernVersion = "Не установлен — Stage 2"
+    let prototypeVersion = "0.2.0"
+    let bundledSillyTavernVersion = "1.18.0 — Stage 3"
 
     private enum Keys {
         static let preferredPort = "preferredPort"

@@ -11,6 +11,8 @@
 *.mm text eol=lf
 *.js text eol=lf
 *.mjs text eol=lf
+*.cjs text eol=lf
+*.patch text eol=lf whitespace=-blank-at-eol
 *.json text eol=lf
 *.plist text eol=lf
 *.pbxproj text eol=lf

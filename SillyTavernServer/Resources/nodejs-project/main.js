@@ -1,14 +1,20 @@
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-// ESM's built-in export synchronization evaluates node:http's lazy Undici
-// exports. Undici requires WebAssembly, which V8 disables under iOS --jitless.
-// Loading node:http through CommonJS avoids touching those unrelated exports.
 const require = createRequire(import.meta.url);
 const http = require('node:http');
+const net = require('node:net');
+const { Worker } = require('node:worker_threads');
 
 const HOST = '127.0.0.1';
+const resourceDirectory = path.dirname(fileURLToPath(import.meta.url));
+const bundledSillyTavernDirectory = path.join(resourceDirectory, 'SillyTavern');
+const sillyTavernDirectory = process.env.ST_IOS_PAYLOAD_DIR
+  ? path.resolve(process.env.ST_IOS_PAYLOAD_DIR)
+  : bundledSillyTavernDirectory;
+const workerEntrypoint = path.join(resourceDirectory, 'sillytavern-worker.cjs');
 
 function argument(name, fallback) {
   const index = process.argv.indexOf(name);
@@ -19,93 +25,167 @@ const preferredPort = Number.parseInt(argument('--preferred-port', '8000'), 10);
 const dataDirectory = argument('--data-directory', process.cwd());
 fs.mkdirSync(dataDirectory, { recursive: true });
 
-let contentServer = null;
+let contentWorker = null;
 let activePort = null;
+let activeVersion = null;
 let operation = Promise.resolve();
+const stoppingWorkers = new WeakSet();
 
 function marker(name, value) {
   console.log(`[${name}] ${JSON.stringify(value)}`);
 }
 
-function page() {
-  return `<!doctype html>
-<html lang="ru">
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>NodeMobile smoke test</title>
-<style>
-  :root { color-scheme: light dark; font: -apple-system-body; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #11131a; color: #f6f7fb; }
-  main { width: min(34rem, calc(100% - 2rem)); padding: 1.5rem; border-radius: 1.5rem; background: #20232d; box-sizing: border-box; }
-  .ok { color: #55d98b; font-weight: 700; } code { color: #b8c7ff; overflow-wrap: anywhere; }
-</style>
-<main>
-  <p class="ok">● Локальный Node.js-сервер работает</p>
-  <h1>Технический прототип</h1>
-  <p>Runtime: <code>${process.version}</code></p>
-  <p>Адрес: <code>http://${HOST}:${activePort}</code></p>
-  <p>Данные: <code>${dataDirectory}</code></p>
-  <p>Это реальный HTTP-сервер NodeMobile, но ещё не SillyTavern.</p>
-</main>
-</html>`;
+function validatePayload() {
+  const requiredFiles = [
+    path.join(sillyTavernDirectory, 'server.js'),
+    path.join(sillyTavernDirectory, 'package.json'),
+    path.join(sillyTavernDirectory, 'node_modules'),
+  ];
+  if (!process.env.ST_IOS_PAYLOAD_DIR) {
+    requiredFiles.push(
+      path.join(sillyTavernDirectory, 'ios-package-manifest.json'),
+      path.join(sillyTavernDirectory, 'ios-runtime-capabilities.json'),
+    );
+  }
+  const missing = requiredFiles.filter((entry) => !fs.existsSync(entry));
+  if (missing.length > 0) {
+    throw new Error(`SillyTavern payload is incomplete: ${missing.join(', ')}`);
+  }
 }
 
-function createContentServer() {
-  return http.createServer((request, response) => {
-    if (request.url === '/health') {
-      response.writeHead(200, { 'content-type': 'application/json; charset=utf-8' });
-      response.end(JSON.stringify({ ok: true, runtime: process.version, port: activePort }));
-      return;
-    }
-    response.writeHead(200, {
-      'content-type': 'text/html; charset=utf-8',
-      'cache-control': 'no-store',
-      'x-content-type-options': 'nosniff',
-      'content-security-policy': "default-src 'none'; style-src 'unsafe-inline'",
+function canListen(port) {
+  return new Promise((resolve) => {
+    const probe = net.createServer();
+    probe.unref();
+    probe.once('error', () => resolve(false));
+    probe.listen(port, HOST, () => {
+      probe.close(() => resolve(true));
     });
-    response.end(page());
   });
 }
 
-async function startContent(port = preferredPort) {
-  if (contentServer) {
-    return { ok: true, state: 'running', port: activePort };
-  }
-
+async function selectPort(port) {
   const firstPort = Number.isInteger(port) && port > 0 && port < 65536 ? port : 8000;
   for (let candidate = firstPort; candidate <= Math.min(firstPort + 100, 65535); candidate += 1) {
-    const server = createContentServer();
-    const result = await new Promise((resolve) => {
-      const onError = (error) => resolve({ error });
-      server.once('error', onError);
-      server.listen(candidate, HOST, () => {
-        server.off('error', onError);
-        resolve({ server });
-      });
-    });
-
-    if (result.server) {
-      contentServer = result.server;
-      activePort = candidate;
-      marker('ST_SERVER_READY', { port: activePort, runtimeVersion: process.version });
-      return { ok: true, state: 'running', port: activePort };
-    }
-    if (result.error?.code !== 'EADDRINUSE') {
-      throw result.error;
-    }
+    if (await canListen(candidate)) return candidate;
   }
   throw new Error(`Нет свободного порта в диапазоне ${firstPort}…${firstPort + 100}`);
 }
 
+function launchSillyTavern(port) {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(workerEntrypoint, {
+      workerData: {
+        dataDirectory,
+        port,
+        sillyTavernDirectory,
+      },
+    });
+    contentWorker = worker;
+    let settled = false;
+
+    const startupTimeout = setTimeout(() => {
+      fail(new Error('SillyTavern did not finish starting within 120 seconds.'));
+    }, 120_000);
+    startupTimeout.unref();
+
+    function finish(value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(startupTimeout);
+      resolve(value);
+    }
+
+    function fail(error) {
+      if (settled) {
+        if (contentWorker === worker) {
+          contentWorker = null;
+          activePort = null;
+          activeVersion = null;
+          stoppingWorkers.add(worker);
+          void worker.terminate();
+        }
+        marker('ST_SERVER_ERROR', { message: String(error?.stack ?? error) });
+        return;
+      }
+      settled = true;
+      clearTimeout(startupTimeout);
+      if (contentWorker === worker) contentWorker = null;
+      activePort = null;
+      activeVersion = null;
+      stoppingWorkers.add(worker);
+      void worker.terminate();
+      reject(error);
+    }
+
+    worker.on('message', (message) => {
+      if (!message || typeof message !== 'object') return;
+
+      if (message.type === 'ready') {
+        activePort = Number(message.port) || port;
+        activeVersion = String(message.version || '1.18.0');
+        const result = {
+          ok: true,
+          state: 'running',
+          port: activePort,
+          runtimeVersion: process.version,
+          sillyTavernVersion: activeVersion,
+        };
+        marker('ST_SERVER_READY', result);
+        finish(result);
+        return;
+      }
+
+      if (message.type === 'error') {
+        fail(new Error(String(message.message || 'Unknown SillyTavern worker error')));
+      }
+    });
+
+    worker.once('error', fail);
+    worker.once('exit', (code) => {
+      const expected = stoppingWorkers.has(worker);
+      if (contentWorker === worker) contentWorker = null;
+      activePort = null;
+      activeVersion = null;
+
+      if (!expected) {
+        fail(new Error(`SillyTavern worker exited with code ${code}.`));
+      }
+    });
+  });
+}
+
+async function startContent(port = preferredPort) {
+  if (contentWorker && activePort) {
+    return {
+      ok: true,
+      state: 'running',
+      port: activePort,
+      runtimeVersion: process.version,
+      sillyTavernVersion: activeVersion,
+    };
+  }
+
+  validatePayload();
+  if (process.cwd() !== sillyTavernDirectory) {
+    process.chdir(sillyTavernDirectory);
+  }
+  const selectedPort = await selectPort(port);
+  return launchSillyTavern(selectedPort);
+}
+
 async function stopContent() {
-  if (!contentServer) {
+  if (!contentWorker) {
     return { ok: true, state: 'stopped', port: null };
   }
-  const server = contentServer;
-  contentServer = null;
-  await new Promise((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+
+  const worker = contentWorker;
   const oldPort = activePort;
+  stoppingWorkers.add(worker);
+  contentWorker = null;
   activePort = null;
+  activeVersion = null;
+  await worker.terminate();
   marker('ST_SERVER_STOPPED', { port: oldPort });
   return { ok: true, state: 'stopped', port: null };
 }
@@ -150,8 +230,9 @@ const controlServer = http.createServer(async (request, response) => {
         ok: true,
         runtime: 'NodeMobile',
         runtimeVersion: process.version,
-        serverRunning: Boolean(contentServer),
+        serverRunning: Boolean(contentWorker && activePort),
         serverPort: activePort,
+        sillyTavernVersion: activeVersion,
         dataDirectory,
       }));
       return;
@@ -175,7 +256,12 @@ const controlServer = http.createServer(async (request, response) => {
   } catch (error) {
     console.error(error);
     response.writeHead(500);
-    response.end(JSON.stringify({ ok: false, state: 'error', port: activePort, error: String(error.message ?? error) }));
+    response.end(JSON.stringify({
+      ok: false,
+      state: 'error',
+      port: activePort,
+      error: String(error.message ?? error),
+    }));
   }
 });
 
@@ -185,12 +271,12 @@ controlServer.listen(0, HOST, async () => {
   try {
     await startContent(preferredPort);
   } catch (error) {
-    marker('ST_SERVER_ERROR', { message: String(error.message ?? error) });
+    marker('ST_SERVER_ERROR', { message: String(error.stack ?? error) });
   }
 });
 
 controlServer.on('error', (error) => {
-  marker('ST_RUNTIME_ERROR', { message: String(error.message ?? error) });
+  marker('ST_RUNTIME_ERROR', { message: String(error.stack ?? error) });
 });
 
 process.on('uncaughtException', (error) => {
