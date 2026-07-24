@@ -26,11 +26,19 @@ jobs:
           xcodebuild -version
           uname -m
 
+      - name: Restore cached Node 22 device runtime
+        id: node22-runtime-cache
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/node22-arm64
+          key: node22-ios-arm64-${{ hashFiles('scripts/build-node22-slice.sh', 'patches/node22-ios-host-tools.patch', 'patches/node22-ios-framework-libraries.patch') }}
+
       # Node/V8 produces large target and host object trees. The standard
       # macos-15 image contains many other complete Xcode installations, and
       # the previous build exhausted the runner disk while libtool was creating
       # libv8_base_without_compiler.a. Keep only the explicitly selected Xcode.
       - name: Reclaim runner disk space
+        if: steps.node22-runtime-cache.outputs.cache-hit != 'true'
         run: |
           echo "Disk space before cleanup:"
           df -h /
@@ -66,13 +74,6 @@ jobs:
             echo "Less than 30 GiB is available after cleanup; refusing to start the hour-long build." >&2
             exit 1
           fi
-
-      - name: Restore cached Node 22 device runtime
-        id: node22-runtime-cache
-        uses: actions/cache/restore@v6
-        with:
-          path: ${{ runner.temp }}/node22-arm64
-          key: node22-ios-arm64-${{ hashFiles('scripts/build-node22-slice.sh', 'patches/node22-ios-host-tools.patch', 'patches/node22-ios-framework-libraries.patch') }}
 
       - name: Build pinned NodeMobile 22 device runtime
         if: steps.node22-runtime-cache.outputs.cache-hit != 'true'
