@@ -77,5 +77,9 @@ grep -Fq "Payload/SillyTavernServer.app/nodejs-project/SillyTavern/ios-runtime-c
   echo "Packaged IPA lost the iOS compatibility manifest." >&2
   exit 1
 }
+grep -Fq "Payload/SillyTavernServer.app/nodejs-project/SillyTavern/dist/_webpack/ios-precompiled/output/lib.js" "${ipa_contents}" || {
+  echo "Packaged IPA lost the precompiled SillyTavern frontend." >&2
+  exit 1
+}
 
 echo "Created unsigned IPA: ${output}"

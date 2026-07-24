@@ -75,7 +75,7 @@ test -d "${source_directory}/node_modules/@jimp/js-jpeg"
 test -d "${source_directory}/node_modules/@jimp/js-png"
 test -f "${source_directory}/node_modules/node-fetch/src/index.js"
 node "${frontend_compiler}" "${source_directory}"
-test -n "$(find "${source_directory}/dist/_webpack" -type f -path '*/output/lib.js' -size +100000c -print -quit)"
+test "$(wc -c < "${source_directory}/dist/_webpack/ios-precompiled/output/lib.js")" -gt 100000
 
 python3 - "${source_directory}" "${requested_tag}" <<'PY'
 import json

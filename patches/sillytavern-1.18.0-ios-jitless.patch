@@ -171,3 +171,16 @@ index a259230..830e13f 100644
      };
  
      return devMiddleware;
+diff --git a/webpack.config.js b/webpack.config.js
+index c065d7e..85539dc 100644
+--- a/webpack.config.js
++++ b/webpack.config.js
+@@ -82,7 +82,7 @@ export default function getPublicLibConfig({ forceDist = false, pruneCache = fal
+     }
+ 
+     const webpackRoot = getWebpackRoot();
+-    const cacheVersion = getWebpackCacheVersion();
++    const cacheVersion = forceDist ? 'ios-precompiled' : getWebpackCacheVersion();
+     const cacheDirectory = getCacheDirectory();
+     const outputDirectory = getOutputDirectory();
+ 

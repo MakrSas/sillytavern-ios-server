@@ -120,8 +120,10 @@ jobs:
           test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/server.js
           test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/ios-package-manifest.json
           test -f SillyTavernServer/Resources/nodejs-project/SillyTavern/ios-runtime-capabilities.json
-          test -n "$(find SillyTavernServer/Resources/nodejs-project/SillyTavern/dist/_webpack \
-            -type f -path '*/output/lib.js' -size +100000c -print -quit)"
+          test "$(
+            wc -c < \
+              SillyTavernServer/Resources/nodejs-project/SillyTavern/dist/_webpack/ios-precompiled/output/lib.js
+          )" -gt 100000
           test "$(
             node -p "require('./SillyTavernServer/Resources/nodejs-project/SillyTavern/package.json').version"
           )" = "1.18.0"
