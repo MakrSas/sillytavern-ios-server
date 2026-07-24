@@ -1,7 +1,8 @@
 diff --git a/src/tokenizers.js b/src/tokenizers.js
 --- a/src/tokenizers.js
 +++ b/src/tokenizers.js
-@@ -43,6 +43,24 @@ import { Template } from '@huggingface/jinja';
+@@ -43,6 +43,23 @@ import {
+ 
  import { Template } from '@huggingface/jinja';
  
 +// NodeMobile's iOS ICU build does not expose the short Unicode property
@@ -23,9 +24,27 @@ diff --git a/src/tokenizers.js b/src/tokenizers.js
 +
  
  /**
-@@ -1209,7 +1227,5 @@ export class PreTrainedTokenizer {
-             case '\r':
-                 // These are technically control characters but we count them as whitespace characters.
+  * @typedef {Object} TokenizerProperties Additional tokenizer-specific properties.
+@@ -228,6 +245,18 @@ function whitespace_split(text) {
+ }
+ 
+ const PUNCTUATION_REGEX = '\\p{P}\\u0021-\\u002F\\u003A-\\u0040\\u005B-\\u0060\\u007B-\\u007E';
++const PUNCTUATION_REGEX_FALLBACK = '\\u0021-\\u002F\\u003A-\\u0040\\u005B-\\u0060\\u007B-\\u007E';
++
++// Some iOS NodeMobile builds expose the RegExp parser but not Unicode
++// property escapes. Keep the full tokenizer pattern where supported and
++// fall back to an ASCII-compatible pattern instead of failing at startup.
++function createUnicodeCompatibleRegex(pattern, fallback) {
++    try {
++        return new RegExp(pattern, 'gu');
++    } catch {
++        return new RegExp(fallback, 'gu');
++    }
++}
+ 
+ /**
+  * Represent a token added by the user on top of the existing Model vocabulary.
+@@ -1194,12 +1223,7 @@ class BertNormalizer extends Normalizer {
                  return false;
  
              default:
@@ -38,3 +57,51 @@ diff --git a/src/tokenizers.js b/src/tokenizers.js
 +                return isControlCodePoint(char.codePointAt(0));
          }
      }
+ 
+@@ -1348,7 +1372,10 @@ class BertPreTokenizer extends PreTokenizer {
+         // Construct a pattern which matches the rust implementation:
+         // https://github.com/huggingface/tokenizers/blob/b4fcc9ce6e4ad5806e82826f816acfdfdc4fcc67/tokenizers/src/pre_tokenizers/bert.rs#L11
+         // Equivalent to removing whitespace and splitting on punctuation (both \p{P} and other ascii characters)
+-        this.pattern = new RegExp(`[^\\s${PUNCTUATION_REGEX}]+|[${PUNCTUATION_REGEX}]`, 'gu');
++        this.pattern = createUnicodeCompatibleRegex(
++            `[^\\s${PUNCTUATION_REGEX}]+|[${PUNCTUATION_REGEX}]`,
++            `[^\\s${PUNCTUATION_REGEX_FALLBACK}]+|[${PUNCTUATION_REGEX_FALLBACK}]`,
++        );
+     }
+     /**
+      * Tokenizes a single text using the BERT pre-tokenization scheme.
+@@ -1393,7 +1420,10 @@ class ByteLevelPreTokenizer extends PreTokenizer {
+          * Set it to False if you want to use your own splitting. Defaults to true.
+          */
+         this.use_regex = this.config.use_regex ?? true;
+-        this.pattern = /'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+/gu;
++        this.pattern = createUnicodeCompatibleRegex(
++            String.raw`'s|'t|'re|'ve|'m|'ll|'d| ?\p{L}+| ?\p{N}+| ?[^\s\p{L}\p{N}]+|\s+(?!\S)|\s+`,
++            String.raw`'s|'t|'re|'ve|'m|'ll|'d| ?[A-Za-z]+| ?[0-9]+| ?[^\sA-Za-z0-9]+|\s+(?!\S)|\s+`,
++        );
+ 
+         this.byte_encoder = BYTES_TO_UNICODE;
+         this.text_encoder = new TextEncoder();
+@@ -1477,7 +1507,10 @@ class PunctuationPreTokenizer extends PreTokenizer {
+     constructor(config) {
+         super();
+         this.config = config;
+-        this.pattern = new RegExp(`[^${PUNCTUATION_REGEX}]+|[${PUNCTUATION_REGEX}]+`, 'gu');
++        this.pattern = createUnicodeCompatibleRegex(
++            `[^${PUNCTUATION_REGEX}]+|[${PUNCTUATION_REGEX}]+`,
++            `[^${PUNCTUATION_REGEX_FALLBACK}]+|[${PUNCTUATION_REGEX_FALLBACK}]+`,
++        );
+     }
+ 
+     /**
+@@ -3979,7 +4012,10 @@ export class WhisperTokenizer extends PreTrainedTokenizer {
+         const word_tokens = []
+         const token_indices = []
+ 
+-        const punctuationRegex = new RegExp(`^[${PUNCTUATION_REGEX}]$`, 'gu');
++        const punctuationRegex = createUnicodeCompatibleRegex(
++            `^[${PUNCTUATION_REGEX}]$`,
++            `^[${PUNCTUATION_REGEX_FALLBACK}]$`,
++        );
+ 
+         for (let i = 0; i < subwords.length; ++i) {
