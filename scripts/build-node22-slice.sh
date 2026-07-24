@@ -75,13 +75,14 @@ python -m pip install --disable-pip-version-check --no-input "setuptools==80.9.0
 )
 
 framework_root="${source_root}/out_ios_${target}"
-framework="$(
-  find "${framework_root}" \
-    -type d \
-    -path '*/Release-*/NodeMobile.framework' \
-    -print \
-    -quit
-)"
+case "${target}" in
+  arm64)
+    framework="${framework_root}/iphoneos-arm64/Release-iphoneos/NodeMobile.framework"
+    ;;
+  arm64-simulator)
+    framework="${framework_root}/iphonesimulator-arm64/Release-iphonesimulator/NodeMobile.framework"
+    ;;
+esac
 if [[ -z "${framework}" || ! -f "${framework}/NodeMobile" ]]; then
   echo "NodeMobile.framework was not produced for ${target}." >&2
   find "${framework_root}" -type d -name NodeMobile.framework -print >&2
