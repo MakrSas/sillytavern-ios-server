@@ -74,9 +74,17 @@ python -m pip install --disable-pip-version-check --no-input "setuptools==80.9.0
   ./tools/ios_framework_prepare.sh "${target}"
 )
 
-framework="$(find "${source_root}/out_ios_${target}" -type d -name NodeMobile.framework -print -quit)"
+framework_root="${source_root}/out_ios_${target}"
+framework="$(
+  find "${framework_root}" \
+    -type d \
+    -path '*/Release-*/NodeMobile.framework' \
+    -print \
+    -quit
+)"
 if [[ -z "${framework}" || ! -f "${framework}/NodeMobile" ]]; then
   echo "NodeMobile.framework was not produced for ${target}." >&2
+  find "${framework_root}" -type d -name NodeMobile.framework -print >&2
   exit 1
 fi
 
